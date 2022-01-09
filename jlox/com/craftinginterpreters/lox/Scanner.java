@@ -15,6 +15,7 @@ class Scanner {
     private int start = 0;
     private int current = 0;
     private int line = 1;
+    private int multi_comment_line_depth = 0; // this should be 0. /* 1, /* 2, /*3 ----- */ 2, */ 1, */ 0
 
     static {
       keywords = new HashMap<>();
@@ -81,7 +82,27 @@ class Scanner {
             if (match('/')) {
                 // A comment goes until the end of the line.
                 while (peek() != '\n' && !isAtEnd()) advance();
-            } else {
+            }
+            else if(match('*')) {
+                multi_comment_line_depth++; // it is the first entrance, now it is set to 1.
+                while (multi_comment_line_depth > 0) {
+
+                    if(peekAt(current) == '*' && peekAt(current + 1) == '/') {
+                        multi_comment_line_depth--;
+                        if(!isAtEnd()) current += 2; // we already looked at 2 line, so we can consume it.
+
+                    }else if(peekAt(current) == '/' && peekAt(current + 1) == '*') {
+                        multi_comment_line_depth++;
+                        if(!isAtEnd()) current += 2; // we already looked at 2 line, so we can consume it.
+
+                    } else {
+                        if(!isAtEnd()) advance();
+                    }
+                }
+
+                if(!isAtEnd()) advance();
+            }
+            else {
                 addToken(SLASH);
             }
             break;
@@ -157,6 +178,10 @@ class Scanner {
     
         current++;
         return true;
+    }
+
+    private char peekAt(int index) {
+        return source.charAt(index);
     }
 
     private char peek() {
